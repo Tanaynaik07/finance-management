@@ -9,7 +9,7 @@
     <% if (!user) { %>
         <form method="POST">
             <label for="name">Name</label>
-            <input type="text" name="name" id="name" required>
+            <input type="text" name="name" id="name"  >
             <label for="email">Email</label>
             <input type="email" name="email" id="email" required>
             <label for="password">Password</label>
@@ -20,10 +20,10 @@
     <% } else { %>
         <h1>Welcome, <%= user.name %>!</h1>
 
-        <h2>Add Expense</h2>
+         <h1>Add Expenses</h1>
         <form method="POST" action="/add-expense">
             <label for="description">Description</label>
-            <input type="text" name="description" id="description" required>
+            <input type="text" name="description" id="description" >
             <label for="amount">Amount</label>
             <input type="number" name="amount" id="amount" required>
             <button type="submit">Add Expense</button>
@@ -34,7 +34,7 @@
             <% expenses.forEach(expense => { %>
                 <li>
                     <strong><%= expense.description %></strong>: $<%= expense.amount %>
-                    (Added on <%= new Date(expense.date).toLocaleString() %>)
+                    (Added on <%= expense.date %><%=expense.time%>)
                 </li>
             <% }); %>
         </ul>

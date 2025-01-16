@@ -19,6 +19,8 @@
     "express-session": "^1.18.1",
     "firebase": "^11.1.0",
     "firebase-admin": "^13.0.2",
-    "session": "^0.1.0"
+    "path": "^0.12.7",
+    "session": "^0.1.0",
+    "url": "^0.11.4"
   }
 }
