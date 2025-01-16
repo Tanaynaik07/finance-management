@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Expenses</title>
+</head>
+<body>
+    <% if (!user) { %>
+        <form method="POST">
+            <label for="name">Name</label>
+            <input type="text" name="name" id="name" required>
+            <label for="email">Email</label>
+            <input type="email" name="email" id="email" required>
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" required>
+            <button type="submit" formaction="/signup">Sign Up</button>
+            <button type="submit" formaction="/login">Log In</button>
+        </form>
+    <% } else { %>
+        <h1>Welcome, <%= user.name %>!</h1>
+
+        <h2>Add Expense</h2>
+        <form method="POST" action="/add-expense">
+            <label for="description">Description</label>
+            <input type="text" name="description" id="description" required>
+            <label for="amount">Amount</label>
+            <input type="number" name="amount" id="amount" required>
+            <button type="submit">Add Expense</button>
+        </form>
+        <h2>Total Balanced spend: <%=total%></h2>
+        <h2>Your Expenses</h2>
+        <ul>
+            <% expenses.forEach(expense => { %>
+                <li>
+                    <strong><%= expense.description %></strong>: $<%= expense.amount %>
+                    (Added on <%= new Date(expense.date).toLocaleString() %>)
+                </li>
+            <% }); %>
+        </ul>
+
+        <form method="POST" action="/logout">
+            <button type="submit">Log Out</button>
+        </form>
+    <% } %>
+</body>
+</html>
