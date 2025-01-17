@@ -1,47 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/styles/index.css">
     <title>User Expenses</title>
+
 </head>
+
 <body>
-    <% if (!user) { %>
-        <form method="POST">
-            <label for="name">Name</label>
-            <input type="text" name="name" id="name"  >
-            <label for="email">Email</label>
-            <input type="email" name="email" id="email" required>
-            <label for="password">Password</label>
-            <input type="password" name="password" id="password" required>
-            <button type="submit" formaction="/signup">Sign Up</button>
-            <button type="submit" formaction="/login">Log In</button>
-        </form>
-    <% } else { %>
-        <h1>Welcome, <%= user.name %>!</h1>
+    <div class="container">
+        <% if (!user) { %>
+            <form method="POST">
+                <h1>Sign Up or Log In</h1>
+                <label for="name">Name</label>
+                <input type="text" name="name" id="name">
+                <label for="email">Email</label>
+                <input type="email" name="email" id="email" required>
+                <label for="password">Password</label>
+                <input type="password" name="password" id="password" required>
+                <button type="submit" formaction="/signup">Sign Up</button>
+                <button type="submit" formaction="/login">Log In</button>
+            </form>
+            <% } else { %>
+                <h1>Welcome, <%= user.name %>!</h1>
+                <h1>Add Expenses</h1>
+                <p style="margin-top: 16px; font-size: 14px; color: #555;">
+                    <strong>Note:</strong>
+                    Add the money you spent and substract the amount you received.
 
-         <h1>Add Expenses</h1>
-        <form method="POST" action="/add-expense">
-            <label for="description">Description</label>
-            <input type="text" name="description" id="description" >
-            <label for="amount">Amount</label>
-            <input type="number" name="amount" id="amount" required>
-            <button type="submit">Add Expense</button>
-        </form>
-        <h2>Total Balanced spend: <%=total%></h2>
-        <h2>Your Expenses</h2>
-        <ul>
-            <% expenses.forEach(expense => { %>
-                <li>
-                    <strong><%= expense.description %></strong>: $<%= expense.amount %>
-                    (Added on <%= expense.date %><%=expense.time%>)
-                </li>
-            <% }); %>
-        </ul>
+                    
+                </p>
+                <form method="POST" action="/add-expense">
+                    <label for="description">Description</label>
+                    <input type="text" name="description" id="description">
+                    <label for="amount">Amount</label>
+                    <input type="number" name="amount" id="amount" required>
+                    <button type="submit">Add Expense</button>
+                </form>
+                <h2 style="width: fit-content;">Total Balanced Spend: Rs<%= total %>
+                </h2>
+                 
+                <h2>Your Expenses</h2>
+                <details>
+                    <summary>Expenses</summary>
+                    <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align: center; padding: 8px; border-bottom: 2px solid #ddd;">
+                                        Description</th>
+                                    <th style="text-align: right; padding: 8px; border-bottom: 2px solid #ddd;">
+                                        Amount(Rs)
+                                    </th>
+                                    <th style="text-align: center; padding: 8px; border-bottom: 2px solid #ddd;">Date
+                                    </th>
+                                    <th style="text-align: center; padding: 8px; border-bottom: 2px solid #ddd;">Time
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% expenses.slice(0).forEach((expense, index)=> { %>
+                                    <% if (index < 10) { %>
+                                        <tr>
+                                            <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+                                                <%= expense.description %>
+                                            </td>
+                                            <%if(expense.amount>0){%>
+                                                <td
+                                                    style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd; background: lightgreen;">
 
-        <form method="POST" action="/logout">
-            <button type="submit">Log Out</button>
-        </form>
-    <% } %>
+                                                    <%= expense.amount %>
+                                                </td>
+
+                                                <%}else{%>
+                                                    <td
+                                                        style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;background: lightcoral;">
+                                                        <%= expense.amount %>
+                                                    </td>
+                                                    <%}%>
+                                                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+                                                            <%= expense.date %>
+                                                        </td>
+                                                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+                                                            <%= expense.time %>
+                                                        </td>
+                                        </tr>
+                                        <% } %>
+                                            <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+
+
+                </details>
+                <!-- Marking for color coding -->
+                <p style="margin-top: 16px; font-size: 14px; color: #555;">
+                    <strong>Note:</strong>
+                    <span
+                        style="color: green; padding: 2px 5px; background-color: lightgreen; border-radius: 5px;">Green
+                        box</span> means money spent.
+
+                    <span style="color: red; padding: 2px 5px; background-color: lightcoral; border-radius: 5px;">Red
+                        box</span> means money received.
+                </p>
+              
+                <form method="POST" action="/logout">
+                    <button type="submit">Log Out</button>
+                </form>
+                <% } %>
+    </div>
 </body>
+
 </html>

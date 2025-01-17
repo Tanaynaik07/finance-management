@@ -1,10 +1,10 @@
 import { collection, doc, setDoc, addDoc, getDocs, getDoc } from "firebase/firestore";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification,sendPasswordResetEmail } from "firebase/auth";
 import express from "express";
 import bodyParser from "body-parser";
 import session from "express-session";
 import { db } from "./firebase.js";
- 
+ import moment from "moment";
  
 
 const app = express();
@@ -35,8 +35,10 @@ app.get("/", async (req, res) => {
     const user = req.session.user || null;
     if (user) {
         const { expenses, total } = await fetchExpenses(user.uid);
+        // Calculate the total expenses in the last 30 days
+        const totalLast30Days = getTotalExpensesLast30Days(expenses);
         console.log(expenses);
-        res.render("index", { user, expenses, total });
+        res.render("index", { user, expenses, total,totalLast30Days });
     } else {
         res.render("login", { user: null, expenses: [] });
     }
@@ -81,12 +83,16 @@ app.post("/signup", async (req, res) => {
 // Login User
 app.post("/login", async (req, res) => {
     const { email, password } = req.body;
+    var error;
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const { uid } = userCredential.user;
 
         // Check if the user's email is verified
         if (!userCredential.user.emailVerified) {
+            error="Please z"
+            res.redirect("/login");
+            res.render("/login", { user: null,error });
             res.send("Please verify your email before logging in.");
             return;
         }
@@ -133,6 +139,28 @@ app.post("/add-expense", async (req, res) => {
     }
 });
 
+// Render Forgot Password Page
+app.get("/forgot-password", (req, res) => {
+    res.render("forgot-password", { user: null });
+});
+
+// Handle Forgot Password Form Submission
+app.post("/forgot-password", async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        await sendPasswordResetEmail(auth, email);
+        res.send("Password reset email sent. Please check your inbox.");
+    } catch (error) {
+        console.error("Error sending password reset email:", error.message);
+        res.send("Failed to send password reset email. Please try again.");
+    }
+});
+ 
+ 
+
+
+
 // Fetch Expenses
 const fetchExpenses = async (uid) => {
     const expensesRef = collection(db, `users/${uid}/expenses`);
@@ -161,6 +189,24 @@ const fetchExpenses = async (uid) => {
 
     expenses.sort((a, b) => b.timestamp - a.timestamp); // Sort in descending order
     return { expenses, total };
+};
+
+// Function to calculate total expenses in the last 30 days
+const getTotalExpensesLast30Days = (expenses) => {
+    // Get the current date and date 30 days ago
+    const thirtyDaysAgo = moment().subtract(30, 'days').toDate();
+
+    // Filter expenses for the last 30 days
+    const recentExpenses = expenses.filter(expense => {
+        // Assuming each expense has a 'date' property in ISO format (e.g., 'YYYY-MM-DD')
+        const expenseDate = moment(expense.date).toDate();
+        return expenseDate >= thirtyDaysAgo;
+    });
+
+    // Sum the filtered expenses
+    const total = recentExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+    return total;
 };
 
 // Start Server
