@@ -37,7 +37,7 @@ app.get("/", async (req, res) => {
         const { expenses, total } = await fetchExpenses(user.uid);
         // Calculate the total expenses in the last 30 days
         const totalLast30Days = getTotalExpensesLast30Days(expenses);
-        console.log(expenses);
+      
         res.render("index", { user, expenses, total,totalLast30Days });
     } else {
         res.render("login", { user: null, expenses: [] });
@@ -157,6 +157,12 @@ app.post("/forgot-password", async (req, res) => {
     }
 });
  
+app.post("/delete-expense", async (req, res) => {
+    const { id } = req.body; // Assuming `id` is sent in the request body
+    expenses = expenses.filter(expense => expense.id !== id); // Filter out the expense
+    res.redirect('/');
+
+});
  
 
 
