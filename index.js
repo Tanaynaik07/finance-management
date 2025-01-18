@@ -1,11 +1,12 @@
-import { collection, doc, setDoc, addDoc, getDocs, getDoc } from "firebase/firestore";
+import { collection, doc, setDoc, addDoc, getDocs, getDoc,deleteDoc } from "firebase/firestore";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification,sendPasswordResetEmail } from "firebase/auth";
 import express from "express";
 import bodyParser from "body-parser";
 import session from "express-session";
 import { db } from "./firebase.js";
  import moment from "moment";
- 
+ import { v4 as uuidv4 } from 'uuid';
+ import XLSX from "xlsx";
 
 const app = express();
 const port = 3000;
@@ -33,12 +34,11 @@ app.set("view engine", "ejs");
 // Routes
 app.get("/", async (req, res) => {
     const user = req.session.user || null;
+    console.log(user);
     if (user) {
         const { expenses, total } = await fetchExpenses(user.uid);
-        // Calculate the total expenses in the last 30 days
-        const totalLast30Days = getTotalExpensesLast30Days(expenses);
-      
-        res.render("index", { user, expenses, total,totalLast30Days });
+        
+        res.render("index", { user, expenses, total });
     } else {
         res.render("login", { user: null, expenses: [] });
     }
@@ -128,10 +128,10 @@ app.post("/add-expense", async (req, res) => {
     if (!description) {
         description = "No Info";
     }
-
+    const expenseId = uuidv4(); // Generate a unique expense ID
     try {
         const expensesRef = collection(db, `users/${user.uid}/expenses`);
-        await addDoc(expensesRef, { description, amount, date: new Date() });
+        await addDoc(expensesRef, { expenseId,description, amount, date: new Date() });
         res.redirect("/");
     } catch (error) {
         console.error("Error adding expense:", error.message);
@@ -158,16 +158,65 @@ app.post("/forgot-password", async (req, res) => {
 });
  
 app.post("/delete-expense", async (req, res) => {
-    const { id } = req.body; // Assuming `id` is sent in the request body
-    expenses = expenses.filter(expense => expense.id !== id); // Filter out the expense
-    res.redirect('/');
+    console.log(req.body); // Log the request body for debugging
+    const { expenseId } = req.body; // Get the expenseId from the request
+    const user = req.session.user;
+    
+    if (!user) return res.redirect("/");
 
+    try {
+        // Fetch the document by expenseId (not by doc.id)
+        const expensesRef = collection(db, `users/${user.uid}/expenses`);
+        const querySnapshot = await getDocs(expensesRef);
+
+        let expenseToDelete = null;
+        querySnapshot.forEach((doc) => {
+            const expenseData = doc.data();
+            if (expenseData.expenseId === expenseId) {  // Compare expenseId
+                expenseToDelete = doc.ref; // Get the reference of the expense document
+            }
+        });
+
+        if (expenseToDelete) {
+            await deleteDoc(expenseToDelete); // Delete the document
+            res.redirect("/"); // Redirect after deletion
+        } else {
+            res.send("Expense not found.");
+        }
+
+    } catch (error) {
+        console.error("Error deleting expense:", error.message);
+        res.send("Failed to delete expense. Please try again.");
+    }
 });
+
+app.get('/download-records', (req, res) => {
+    const user = req.session.user;  // Assuming user session is stored here
+    
+    if (user) {
+        const { uid } = user;
+        fetchExpenses(uid).then(({ expenses }) => {
+            console.log('Expenses data:', expenses);  // Log expenses data
+            const expensesData = expenses.map(expense => ({
+                Description: expense.description,
+                Amount: expense.amount,
+                Date: expense.date,
+                Time: expense.time,
+            }));
+            downloadExcel(expensesData, res);
+        }).catch(err => {
+            console.error('Error fetching expenses:', err);
+            res.status(500).send('Error fetching expenses.');
+        });
+    } else {
+        res.status(401).send('User not authenticated');
+    }
+});
+
+
  
 
-
-
-// Fetch Expenses
+// Fetch Expenses with Improved Logic
 const fetchExpenses = async (uid) => {
     const expensesRef = collection(db, `users/${uid}/expenses`);
     const querySnapshot = await getDocs(expensesRef);
@@ -181,39 +230,42 @@ const fetchExpenses = async (uid) => {
         const formattedDate = expenseDate.toLocaleDateString(); // Only the date
         const formattedTime = expenseDate.toLocaleTimeString(); // Only the time
 
+        // Parse amount and calculate total balance
+        const amount = parseFloat(expenseData.amount);
+        total += amount;
+
+        // Push formatted expense with styling flags, including expenseId
         expenses.push({
-            id: doc.id,
+            expenseId: expenseData.expenseId, // Include expenseId
             description: expenseData.description,
-            amount: expenseData.amount,
+            amount: amount.toFixed(2), // Keep two decimal places
+            isPositive: amount > 0,
             date: formattedDate,
             time: formattedTime,
             timestamp: expenseDate
         });
-
-        total += parseFloat(expenseData.amount);
     });
 
-    expenses.sort((a, b) => b.timestamp - a.timestamp); // Sort in descending order
-    return { expenses, total };
+    // Sort expenses by date in descending order
+    expenses.sort((a, b) => b.timestamp - a.timestamp);
+
+    return { expenses, total: total.toFixed(2) }; // Keep total with two decimal places
 };
 
-// Function to calculate total expenses in the last 30 days
-const getTotalExpensesLast30Days = (expenses) => {
-    // Get the current date and date 30 days ago
-    const thirtyDaysAgo = moment().subtract(30, 'days').toDate();
+const downloadExcel = (expenses, res) => {
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(expenses);
+    XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
 
-    // Filter expenses for the last 30 days
-    const recentExpenses = expenses.filter(expense => {
-        // Assuming each expense has a 'date' property in ISO format (e.g., 'YYYY-MM-DD')
-        const expenseDate = moment(expense.date).toDate();
-        return expenseDate >= thirtyDaysAgo;
-    });
+    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+    
+    console.log('Generated Excel Buffer:', excelBuffer);  // Log the buffer
 
-    // Sum the filtered expenses
-    const total = recentExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-
-    return total;
+    res.setHeader('Content-Disposition', 'attachment; filename=expenses_data.xlsx');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(excelBuffer);
 };
+
  
 // Start Server
 app.listen(port, () => {

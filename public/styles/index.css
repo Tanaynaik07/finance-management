@@ -48,7 +48,7 @@ input:focus, button:focus {
     box-shadow: 0 0 5px rgba(106, 17, 203, 0.5);
 }
 
-button {
+/* button {
     background: linear-gradient(to right, #6a11cb, #2575fc);
     color: white;
     border: none;
@@ -57,8 +57,38 @@ button {
 
 button:hover {
     background: linear-gradient(to left, #6a11cb, #2575fc);
+} */
+
+#download-form{
+    width: fit-content;
 }
 
+#add-expense-btn{
+    background: linear-gradient(to right, #6a11cb, #2575fc);
+    color: white;
+    border: none;
+    cursor: pointer;
+
+}
+
+ 
+
+#download-records-btn{
+    width: fit-content;
+    background: linear-gradient(to right, #6a11cb, #2575fc);
+    color: white;
+    border: none;
+}
+
+#download-records-btn:hover,#logout-btn:hover{
+    cursor: pointer;
+}
+
+#logout-btn{
+    background:  rgb(255, 0, 0);
+    color: white;
+    border: none;
+}
 /* Details styling */
 details {
     margin: 10px 0;
@@ -104,4 +134,9 @@ ul::-webkit-scrollbar-thumb:hover {
 #expense_delete_btn:hover{
     background-color: #454545;
     cursor: pointer;
+}
+
+svg {
+    width: 100%;
+    height: 100%;
 }
