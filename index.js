@@ -1,18 +1,19 @@
-import { collection, doc, setDoc, addDoc, getDocs, getDoc,deleteDoc } from "firebase/firestore";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification,sendPasswordResetEmail } from "firebase/auth";
+import { collection, doc, setDoc, addDoc, getDocs, getDoc, deleteDoc, arrayUnion, updateDoc, query, where, writeBatch } from "firebase/firestore";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "firebase/auth";
 import express from "express";
 import bodyParser from "body-parser";
 import session from "express-session";
 import { db } from "./firebase.js";
- import moment from "moment";
- import { v4 as uuidv4 } from 'uuid';
- import XLSX from "xlsx";
+import moment from "moment";
+import { v4 as uuidv4 } from 'uuid';
+import XLSX from "xlsx";
+import e from "express";
 
 const app = express();
 const port = 3000;
 const auth = getAuth();
 
- 
+
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -29,15 +30,17 @@ app.use(
 // Static Files & View Engine
 app.use(express.static("public"));
 app.set("view engine", "ejs");
- 
+
 
 // Routes
 app.get("/", async (req, res) => {
     const user = req.session.user || null;
     console.log(user);
     if (user) {
-        const { expenses, total } = await fetchExpenses(user.uid);
-        
+        await updateMissingExpenseType(user.uid); // Run the update function
+        var { expenses, total } = await fetchExpenses(user.uid);
+        // console.log(expenses);
+
         res.render("index", { user, expenses, total });
     } else {
         res.render("login", { user: null, expenses: [] });
@@ -57,6 +60,7 @@ app.get("/signup", (req, res) => {
 app.get("/login", (req, res) => {
     res.render("login", { user: null });
 });
+
 
 // Register User
 app.post("/signup", async (req, res) => {
@@ -90,9 +94,9 @@ app.post("/login", async (req, res) => {
 
         // Check if the user's email is verified
         if (!userCredential.user.emailVerified) {
-            error="Please z"
+            error = "Please z"
             res.redirect("/login");
-            res.render("/login", { user: null,error });
+            res.render("/login", { user: null, error });
             res.send("Please verify your email before logging in.");
             return;
         }
@@ -124,14 +128,22 @@ app.post("/logout", (req, res) => {
 app.post("/add-expense", async (req, res) => {
     const user = req.session.user;
     if (!user) return res.redirect("/");
-    let { description, amount } = req.body;
-    if (!description) {
+    // console.log(req.body);
+    let { description, amount, expenseType, amountType } = req.body;
+    if (description === " " || description === "") {
         description = "No Info";
+    }
+    if (amountType === "negative") {
+        amount = -Math.abs(amount);
+    }
+    else if (amountType === "positive") {
+        amount = Math.abs(amount);
     }
     const expenseId = uuidv4(); // Generate a unique expense ID
     try {
         const expensesRef = collection(db, `users/${user.uid}/expenses`);
-        await addDoc(expensesRef, { expenseId,description, amount, date: new Date() });
+        await addDoc(expensesRef, { expenseId, description, amount, date: new Date(), expenseType });
+        // console.log(type);
         res.redirect("/");
     } catch (error) {
         console.error("Error adding expense:", error.message);
@@ -143,6 +155,31 @@ app.post("/add-expense", async (req, res) => {
 app.get("/forgot-password", (req, res) => {
     res.render("forgot-password", { user: null });
 });
+
+app.get('/download-records', (req, res) => {
+    const user = req.session.user;  // Assuming user session is stored here
+
+    if (user) {
+        const { uid } = user;
+        fetchExpenses(uid).then(({ expenses }) => {
+            // console.log('Expenses data:', expenses);  // Log expenses data
+            const expensesData = expenses.map(expense => ({
+                Description: expense.description,
+                Amount: expense.amount,
+                Date: expense.date,
+                Time: expense.time,
+                Type: expense.expenseType
+            }));
+            downloadExcel(expensesData, res);
+        }).catch(err => {
+            console.error('Error fetching expenses:', err);
+            res.status(500).send('Error fetching expenses.');
+        });
+    } else {
+        res.status(401).send('User not authenticated');
+    }
+});
+
 
 // Handle Forgot Password Form Submission
 app.post("/forgot-password", async (req, res) => {
@@ -156,17 +193,18 @@ app.post("/forgot-password", async (req, res) => {
         res.send("Failed to send password reset email. Please try again.");
     }
 });
- 
+
 app.post("/delete-expense", async (req, res) => {
-    console.log(req.body); // Log the request body for debugging
+    // console.log(req.body); // Log the request body for debugging
     const { expenseId } = req.body; // Get the expenseId from the request
     const user = req.session.user;
-    
+
     if (!user) return res.redirect("/");
 
     try {
         // Fetch the document by expenseId (not by doc.id)
         const expensesRef = collection(db, `users/${user.uid}/expenses`);
+
         const querySnapshot = await getDocs(expensesRef);
 
         let expenseToDelete = null;
@@ -190,31 +228,91 @@ app.post("/delete-expense", async (req, res) => {
     }
 });
 
-app.get('/download-records', (req, res) => {
-    const user = req.session.user;  // Assuming user session is stored here
-    
-    if (user) {
-        const { uid } = user;
-        fetchExpenses(uid).then(({ expenses }) => {
-            console.log('Expenses data:', expenses);  // Log expenses data
-            const expensesData = expenses.map(expense => ({
-                Description: expense.description,
-                Amount: expense.amount,
-                Date: expense.date,
-                Time: expense.time,
-            }));
-            downloadExcel(expensesData, res);
-        }).catch(err => {
-            console.error('Error fetching expenses:', err);
-            res.status(500).send('Error fetching expenses.');
+
+
+
+
+
+app.post('/edit-expense', async (req, res) => {
+    const { uid, expenseId, description, amountType, amount, expenseType } = req.body;
+
+    console.log(req.body);  // Log the request body for debugging
+    if (!uid || !expenseId || !description || !amount || !expenseType) {
+        return res.status(400).send({ message: 'Missing required fields' });
+    }
+
+    try {
+        // Get reference to the expenses collection
+        const expensesRef = collection(db, `users/${uid}/expenses`);
+
+        // Create a query to find the document that matches the expenseId
+        const q = query(expensesRef, where("expenseId", "==", expenseId));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            return res.status(404).send({ message: 'Expense not found!' });
+        }
+
+        // Get the document ID from the query result
+        const docId = querySnapshot.docs[0].id;
+        console.log("Document ID:", docId);
+
+        // Create a reference to the specific expense document
+        const expenseDocRef = doc(db, `users/${uid}/expenses`, docId);
+
+        // Fetch the expense document
+        const expenseDoc = await getDoc(expenseDocRef);
+
+        if (!expenseDoc.exists()) {
+            return res.status(404).send({ message: 'Expense not found!' });
+        }
+
+        // Get current data
+        const expenseData = expenseDoc.data();
+        const updateDates = expenseData.updateDates || [];  // Default to empty array if not present
+        const editHistory = expenseData.editHistory || [];  // Default to empty array if not present
+
+        // Add the current timestamp to the updateDates array
+        const currentTimestamp = new Date();
+        if (amountType === "negative") {
+            amount = -Math.abs(amount);
+        }
+        else if (amountType === "positive") {
+            amount = Math.abs(amount);
+        }
+
+        // Create an entry for the edit history
+        const editEntry = {
+            timestamp: currentTimestamp,
+            updatedFields: {
+                description: { old: expenseData.description, new: description },
+                amount: { old: expenseData.amount, new: parseFloat(amount) },
+                expenseType: { old: expenseData.expenseType, new: expenseType }
+            },
+        };
+
+        // Add the edit entry to the edit history and updateDates
+        await updateDoc(expenseDocRef, {
+            description,
+            amount: parseFloat(amount),
+            expenseType,
+            updateDates: arrayUnion(currentTimestamp),  // Firebase arrayUnion to ensure uniqueness
+            editHistory: arrayUnion(editEntry)  // Save the edit history
         });
-    } else {
-        res.status(401).send('User not authenticated');
+         
+        res.redirect('/');  // Redirect to the main page after updating the expense
+    } catch (error) {
+        console.error('Error updating expense:', error);
+        return res.status(500).send({ message: 'Server error while updating expense.' });
     }
 });
 
 
- 
+
+
+
+
+
 
 // Fetch Expenses with Improved Logic
 const fetchExpenses = async (uid) => {
@@ -225,6 +323,7 @@ const fetchExpenses = async (uid) => {
 
     querySnapshot.forEach((doc) => {
         const expenseData = doc.data();
+        console.log(expenseData);
         const expenseDate = expenseData.date.toDate(); // Convert Firebase Timestamp to JS Date
 
         const formattedDate = expenseDate.toLocaleDateString(); // Only the date
@@ -234,6 +333,9 @@ const fetchExpenses = async (uid) => {
         const amount = parseFloat(expenseData.amount);
         total += amount;
 
+        if (expenseData.expenseType === undefined || expenseData.expenseType === null) {
+            expenseData.expenseType = "miscellaneous";
+        }
         // Push formatted expense with styling flags, including expenseId
         expenses.push({
             expenseId: expenseData.expenseId, // Include expenseId
@@ -242,8 +344,10 @@ const fetchExpenses = async (uid) => {
             isPositive: amount > 0,
             date: formattedDate,
             time: formattedTime,
-            timestamp: expenseDate
+            timestamp: expenseDate,
+            expenseType: expenseData.expenseType
         });
+        // console.log(expenses)
     });
 
     // Sort expenses by date in descending order
@@ -258,7 +362,7 @@ const downloadExcel = (expenses, res) => {
     XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
 
     const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
-    
+
     console.log('Generated Excel Buffer:', excelBuffer);  // Log the buffer
 
     res.setHeader('Content-Disposition', 'attachment; filename=expenses_data.xlsx');
@@ -266,7 +370,29 @@ const downloadExcel = (expenses, res) => {
     res.send(excelBuffer);
 };
 
- 
+// Update expenses with missing expenseType field to "miscellaneous"
+const updateMissingExpenseType = async (uid) => {
+    const expensesRef = collection(db, `users/${uid}/expenses`);
+    const querySnapshot = await getDocs(expensesRef);
+    const batch = writeBatch(db);  // Firestore batch update
+
+    querySnapshot.forEach((doc) => {
+        const expenseData = doc.data();
+
+        // Check if 'expenseType' is missing or undefined
+        if (!expenseData.expenseType) {
+            // Add the update to the batch
+            const docRef = doc.ref;
+            batch.update(docRef, { expenseType: "miscellaneous" });
+            console.log(`Updated expenseId: ${doc.id}, setting expenseType to 'miscellaneous'`);
+        }
+    });
+
+    // Commit the batch update
+    await batch.commit();
+    console.log('Batch update completed for missing expenseType.');
+};
+
 // Start Server
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);

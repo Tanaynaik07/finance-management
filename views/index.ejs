@@ -17,16 +17,43 @@
         <h1>Add Expenses</h1>
         <p style="margin-top: 16px; font-size: 14px; color: #555;">
             <strong>Note:</strong>
-            Add the money you recived and substract the amount you spent.
+            Please select the correct amount type (Income/Expense) and expense type from the dropdown list.
 
 
         </p>
         <form method="POST" action="/add-expense">
             <label for="description">Description</label>
             <input type="text" name="description" id="description">
-            <label for="amount">Amount</label>
-            <input type="number" name="amount" id="amount" required>
+            <div style="display: flex;flex-direction: row;gap:50px">
+                <div style="display: flex;flex-direction: column;">
+
+                    <label for="amountType">Amount Type:</label>
+                    <select id="amountType" name="amountType" style="padding: 10px;border:none">
+                        <option value="positive">Income (+)</option>
+                        <option value="negative">Expense (-)</option>
+                    </select>
+                </div>
+                <div style="display: flex;flex-direction: column;">
+
+                    <label for="amount">Amount</label>
+                    <input type="number" name="amount" id="amount" required>
+                </div>
+            </div>
+            <label for="expenseType">Select Expense Type:</label>
+            <select id="expenseType" name="expenseType" style="padding: 10px;">
+                <option value="Rent">Rent</option>
+                <option value="Utilities">Utilities</option>
+                <option value="Groceries">Groceries</option>
+                <option value="Transportation">Transportation</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Education">Education</option>
+                <option value="Insurance">Insurance</option>
+                <option value="Subscriptions">Subscriptions</option>
+                <option value="Miscellaneous">Miscellaneous</option>
+            </select>
             <button type="submit" id="add-expense-btn">Add Expense</button>
+
         </form>
         <div style=" display: flex;
             align-items: center;
@@ -49,16 +76,21 @@
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr>
-                            <th style="text-align: center; padding: 8px; border-bottom: 2px solid #ddd;">
+                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">
                             </th>
-                            <th style="text-align: center; padding: 8px; border-bottom: 2px solid #ddd;">
+                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">
                                 Description</th>
-                            <th style="text-align: right; padding: 8px; border-bottom: 2px solid #ddd;">
+                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">
                                 Amount(Rs)
                             </th>
-                            <th style="text-align: center; padding: 8px; border-bottom: 2px solid #ddd;">Date
+                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">
+                                Type
                             </th>
-                            <th style="text-align: center; padding: 8px; border-bottom: 2px solid #ddd;">Time
+                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Date
+                            </th>
+                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Time
+                            </th>
+                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Edit
                             </th>
                         </tr>
                     </thead>
@@ -116,23 +148,42 @@
                                     </td>
                                     <%if(expense.amount>0){%>
                                         <td
-                                            style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd; color: rgb(0, 255, 0); text-align: center;">
+                                            style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd; color: rgb(0, 255, 0); text-align: center;">
 
                                             +<%= Math.abs(expense.amount) %>
                                         </td>
 
                                         <%}else{%>
                                             <td
-                                                style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;color: lightcoral; text-align: center;">
+                                                style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;color: lightcoral; text-align: center;">
                                                 -<%= Math.abs(expense.amount) %>
                                             </td>
                                             <%}%>
+                                                <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+                                                    <%= expense.expenseType ?
+                                                        expense.expenseType.charAt(0).toUpperCase() +
+                                                        expense.expenseType.slice(1) : 'N/A' %>
+
+
+                                                </td>
                                                 <td style="padding: 8px; border-bottom: 1px solid #ddd;">
                                                     <%= expense.date %>
                                                 </td>
                                                 <td style="padding: 8px; border-bottom: 1px solid #ddd;">
                                                     <%= expense.time %>
                                                 </td>
+
+
+                                                <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+                                                    <button type="button"
+                                                        onclick="openEditModal('<%=user.uid%>','<%= expense.expenseId %>', '<%= expense.description %>', '<%= expense.amount %>', '<%= expense.expenseType %>')">
+                                                        Edit
+                                                    </button>
+                                                </td>
+
+
+
+
                                 </tr>
                                 <% } %>
                                     <% }); %>
@@ -157,6 +208,76 @@
         </form>
 
     </div>
+    <!-- Edit Expense Modal -->
+    <div id="editExpenseModal" class="modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+background: white; padding: 20px; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0,0,0,0.2); z-index: 1000;">
+        <h2>Edit Expense</h2>
+        <form id="editExpenseForm" method="POST" action="/edit-expense">
+            <input type="hidden" name="uid" id="uid">
+            <input type="hidden" name="expenseId" id="editExpenseId">
+            <label for="editDescription">Description</label>
+            <input type="text" name="description" id="editDescription" required>
+            <!-- <div style="display: flex;flex-direction: row;gap:50px">
+                <div style="display: flex;flex-direction: column;">
+
+                    <label for="editAmountType">Amount Type:</label>
+                    <select id="amountType" name="amountType" style="padding: 10px;border:none">
+                        <option value="positive">Income (+)</option>
+                        <option value="negative">Expense (-)</option>
+                    </select>
+                </div>
+                <div style="display: flex;flex-direction: column;">
+
+                    <label for="editAmount">Amount</label>
+                    <input type="number" name="amount" id="amount" required>
+                </div>
+            </div> -->
+            <label for="editAmount">Amount</label>
+            <input type="number" name="amount" id="editAmount" required>
+
+            <label for="editExpenseType">Expense Type</label>
+            <select id="editExpenseType" name="expenseType" style="padding: 10px;">
+                <option value="Rent">Rent</option>
+                <option value="Utilities">Utilities</option>
+                <option value="Groceries">Groceries</option>
+                <option value="Transportation">Transportation</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Education">Education</option>
+                <option value="Insurance">Insurance</option>
+                <option value="Subscriptions">Subscriptions</option>
+                <option value="Miscellaneous">Miscellaneous</option>
+            </select>
+
+            <button type="submit">Save Changes</button>
+            <button type="button" onclick="closeModal()">Cancel</button>
+        </form>
+    </div>
+
+    <!-- Background Overlay (optional, to darken the background when modal is open) -->
+    <div id="modalOverlay" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+background: rgba(0, 0, 0, 0.5); z-index: 999;"></div>
+
+
+    <script>
+        function openEditModal(uid, id, description, amount, type) {
+            document.getElementById('uid').value = uid;
+            document.getElementById('editExpenseId').value = id;
+            document.getElementById('editDescription').value = description;
+            document.getElementById('editAmount').value = amount;
+            document.getElementById('editExpenseType').value = type;
+
+            document.getElementById('editExpenseModal').style.display = 'block';
+            document.getElementById('modalOverlay').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('editExpenseModal').style.display = 'none';
+            document.getElementById('modalOverlay').style.display = 'none';
+        }
+    </script>
+
 </body>
+
 
 </html>
