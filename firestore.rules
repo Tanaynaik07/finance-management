@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Restrict access to the "users" collection
+    match /users/{userId} {
+      // Allow read and write only if the user is authenticated
+      // and the userId in the path matches the authenticated user's UID
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Restrict access to the "expenses" subcollection
+      match /expenses/{expenseId} {
+        // Only allow authenticated users to access their own expenses
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Restrict access to the "reminders" subcollection
+      match /reminders/{reminderId} {
+        // Only allow authenticated users to access their own reminders
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        
+        // Validate reminder data
+        allow create: if request.auth != null 
+          && request.auth.uid == userId
+          && request.resource.data.reminderId is string
+          && request.resource.data.description is string
+          && request.resource.data.amount is number
+          && request.resource.data.period is number
+          && request.resource.data.nextDue is timestamp
+          && request.resource.data.createdAt is timestamp;
+
+        allow update: if request.auth != null 
+          && request.auth.uid == userId
+          && request.resource.data.reminderId is string
+          && request.resource.data.description is string
+          && request.resource.data.amount is number
+          && request.resource.data.period is number
+          && request.resource.data.nextDue is timestamp;
+      }
+    }
+  }
+} 

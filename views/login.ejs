@@ -9,9 +9,12 @@
 <body>
     <div class="login-container">
         <%if(locals.error){%>
-        <h1><%=error%></h1>
+        <script>
+            alert("<%=error%>");
+        </script>
         <%}%>
         <h2>Login</h2>
+        
         <form method="POST">
         <label for="email">Email</label>
         <input type="email" name="email" id="email" required>

@@ -193,6 +193,109 @@
 
 
         </details>
+        <!-- Payment Reminders Section -->
+        <details open>
+            <summary>Payment Reminders</summary>
+            <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Description</th>
+                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Amount(Rs)</th>
+                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Period (Days)</th>
+                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Next Due</th>
+                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% reminders && reminders.forEach((reminder) => { %>
+                            <tr>
+                                <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= reminder.description %></td>
+                                <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">
+                                    <%if(reminder.amount > 0){%>
+                                        <span style="color: rgb(0, 255, 0);">+<%= Math.abs(reminder.amount) %></span>
+                                    <%}else{%>
+                                        <span style="color: lightcoral;">-<%= Math.abs(reminder.amount) %></span>
+                                    <%}%>
+                                </td>
+                                <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= reminder.period %></td>
+                                <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= reminder.nextDue %></td>
+                                <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+                                    <button type="button" onclick="openEditReminderModal('<%= reminder.reminderId %>', '<%= reminder.description %>', '<%= reminder.amount %>', '<%= reminder.period %>', '<%= reminder.amount > 0 ? "positive" : "negative" %>')">Edit</button>
+                                    <form method="POST" action="/delete-reminder" style="display: inline;">
+                                        <input type="hidden" name="reminderId" value="<%= reminder.reminderId %>">
+                                        <button type="submit" style="color: red;">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+            <button type="button" onclick="openAddReminderModal()" style="margin-top: 10px;">Add New Reminder</button>
+        </details>
+
+        <!-- Add Reminder Modal -->
+        <div id="addReminderModal" class="modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: white; padding: 20px; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0,0,0,0.2); z-index: 1000;">
+            <h2>Add Payment Reminder</h2>
+            <form id="addReminderForm" method="POST" action="/add-reminder">
+                <label for="reminderDescription">Description</label>
+                <input type="text" name="description" id="reminderDescription" required>
+                
+                <div style="display: flex;flex-direction: row;gap:50px">
+                    <div style="display: flex;flex-direction: column;">
+                        <label for="reminderAmountType">Amount Type:</label>
+                        <select id="reminderAmountType" name="amountType" style="padding: 10px;border:none">
+                            <option value="positive">Income (+)</option>
+                            <option value="negative">Expense (-)</option>
+                        </select>
+                    </div>
+                    <div style="display: flex;flex-direction: column;">
+                        <label for="reminderAmount">Amount</label>
+                        <input type="number" name="amount" id="reminderAmount" required>
+                    </div>
+                </div>
+                
+                <label for="reminderPeriod">Period (Days)</label>
+                <input type="number" name="period" id="reminderPeriod" required min="1">
+                
+                <button type="submit">Add Reminder</button>
+                <button type="button" onclick="closeAddReminderModal()">Cancel</button>
+            </form>
+        </div>
+
+        <!-- Edit Reminder Modal -->
+        <div id="editReminderModal" class="modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: white; padding: 20px; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0,0,0,0.2); z-index: 1000;">
+            <h2>Edit Payment Reminder</h2>
+            <form id="editReminderForm" method="POST" action="/edit-reminder">
+                <input type="hidden" name="reminderId" id="editReminderId">
+                <label for="editReminderDescription">Description</label>
+                <input type="text" name="description" id="editReminderDescription" required>
+                
+                <div style="display: flex;flex-direction: row;gap:50px">
+                    <div style="display: flex;flex-direction: column;">
+                        <label for="editReminderAmountType">Amount Type:</label>
+                        <select id="editReminderAmountType" name="amountType" style="padding: 10px;border:none">
+                            <option value="positive">Income (+)</option>
+                            <option value="negative">Expense (-)</option>
+                        </select>
+                    </div>
+                    <div style="display: flex;flex-direction: column;">
+                        <label for="editReminderAmount">Amount</label>
+                        <input type="number" name="amount" id="editReminderAmount" required>
+                    </div>
+                </div>
+                
+                <label for="editReminderPeriod">Period (Days)</label>
+                <input type="number" name="period" id="editReminderPeriod" required min="1">
+                
+                <button type="submit">Save Changes</button>
+                <button type="button" onclick="closeEditReminderModal()">Cancel</button>
+            </form>
+        </div>
+
         <!-- Marking for color coding -->
         <p style="margin-top: 16px; font-size: 14px; color: #555;">
             <strong>Note:</strong>
@@ -273,6 +376,33 @@ background: rgba(0, 0, 0, 0.5); z-index: 999;"></div>
 
         function closeModal() {
             document.getElementById('editExpenseModal').style.display = 'none';
+            document.getElementById('modalOverlay').style.display = 'none';
+        }
+
+        // New reminder modal functions
+        function openAddReminderModal() {
+            document.getElementById('addReminderModal').style.display = 'block';
+            document.getElementById('modalOverlay').style.display = 'block';
+        }
+
+        function closeAddReminderModal() {
+            document.getElementById('addReminderModal').style.display = 'none';
+            document.getElementById('modalOverlay').style.display = 'none';
+        }
+
+        function openEditReminderModal(id, description, amount, period, amountType) {
+            document.getElementById('editReminderId').value = id;
+            document.getElementById('editReminderDescription').value = description;
+            document.getElementById('editReminderAmount').value = Math.abs(amount);
+            document.getElementById('editReminderPeriod').value = period;
+            document.getElementById('editReminderAmountType').value = amountType;
+            
+            document.getElementById('editReminderModal').style.display = 'block';
+            document.getElementById('modalOverlay').style.display = 'block';
+        }
+
+        function closeEditReminderModal() {
+            document.getElementById('editReminderModal').style.display = 'none';
             document.getElementById('modalOverlay').style.display = 'none';
         }
     </script>
