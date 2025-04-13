@@ -149,3 +149,23 @@ svg {
 #editExpenseForm label{
     color: black;
 }
+
+.download-btn {
+    width: fit-content;
+    background: linear-gradient(to right, #6a11cb, #2575fc);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.download-btn:hover {
+    transform: translateY(-2px);
+}
+
+#download-form {
+    display: flex;
+    gap: 10px;
+}
