@@ -63,9 +63,16 @@
             <h2 style="width: fit-content;">Net Expenditure: Rs<%= total %>
             </h2>
 
-            <form method="get" action="/download-records" id="download-form">
-                <button type="submit" id="download-records-btn">Download Records</button>
-            </form>
+            <div id="download-form" style="display: flex; gap: 10px;">
+                <form method="get" action="/download-records" style="margin: 0;">
+                    <input type="hidden" name="format" value="excel">
+                    <button type="submit" class="download-btn">Download Excel</button>
+                </form>
+                <form method="get" action="/download-records" style="margin: 0;">
+                    <input type="hidden" name="format" value="pdf">
+                    <button type="submit" class="download-btn">Download PDF</button>
+                </form>
+            </div>
         </div>
 
         <h2>Your Expenses</h2>
@@ -221,7 +228,7 @@
                                 <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= reminder.period %></td>
                                 <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= reminder.nextDue %></td>
                                 <td style="padding: 8px; border-bottom: 1px solid #ddd;">
-                                    <button type="button" onclick="openEditReminderModal('<%= reminder.reminderId %>', '<%= reminder.description %>', '<%= reminder.amount %>', '<%= reminder.period %>', '<%= reminder.amount > 0 ? "positive" : "negative" %>')">Edit</button>
+                                    <button type="button" onclick="openEditReminderModal('<%= reminder.reminderId %>', '<%= reminder.description %>', '<%= reminder.amount %>', '<%= reminder.period %>', '<%= reminder.amount > 0 ? 'positive' : 'negative' %>')">Edit</button>
                                     <form method="POST" action="/delete-reminder" style="display: inline;">
                                         <input type="hidden" name="reminderId" value="<%= reminder.reminderId %>">
                                         <button type="submit" style="color: red;">Delete</button>

@@ -5,12 +5,12 @@ import bodyParser from "body-parser";
 import session from "express-session";
 import { db } from "./firebase.js";
 import moment from "moment";
-import { v4 as uuidv4 } from 'uuid';
-import XLSX from "xlsx";
+import { v4 as uuidv4 } from 'uuid';import XLSX from "xlsx";
 import e from "express";
 import nodemailer from 'nodemailer';
 import cron from 'node-cron';
 import dotenv from 'dotenv';
+import PDFDocument from 'pdfkit';
 
 // Load environment variables
 dotenv.config();
@@ -231,6 +231,8 @@ app.get('/download-records', async (req, res) => {
     const user = req.session.user;
     if (!user) return res.status(401).send('User not authenticated');
 
+    const format = req.query.format || 'excel'; // Get format from query parameter
+
     try {
         // Fetch both expenses and reminders
         const { expenses } = await fetchExpenses(user.uid);
@@ -240,7 +242,7 @@ app.get('/download-records', async (req, res) => {
         const expensesData = expenses.map(expense => ({
             Type: 'Expense',
             Description: expense.description,
-            Amount: expense.amount,
+            Amount: parseFloat(expense.amount),
             Category: expense.expenseType || 'N/A',
             Date: expense.date,
             Time: expense.time
@@ -250,7 +252,7 @@ app.get('/download-records', async (req, res) => {
         const remindersData = reminders.map(reminder => ({
             Type: 'Reminder',
             Description: reminder.description,
-            Amount: reminder.amount,
+            Amount: parseFloat(reminder.amount),
             Period: `${reminder.period} days`,
             Next_Due: reminder.nextDue,
             Category: reminder.amount > 0 ? 'Income' : 'Expense'
@@ -263,87 +265,112 @@ app.get('/download-records', async (req, res) => {
             return dateB - dateA;
         });
 
-        // Create workbook
+        if (format === 'excel') {
+            // Existing Excel generation code
         const wb = XLSX.utils.book_new();
-        
-        // Create worksheet
         const ws = XLSX.utils.json_to_sheet(allData);
 
         // Set column widths
         const colWidths = [
-            { wch: 10 }, // Type
-            { wch: 30 }, // Description
-            { wch: 15 }, // Amount
-            { wch: 15 }, // Category/Period
-            { wch: 15 }, // Date/Next Due
-            { wch: 15 }  // Time
+                { wch: 10 },  // Type
+                { wch: 30 },  // Description
+                { wch: 15 },  // Amount
+                { wch: 15 },  // Category/Period
+                { wch: 15 },  // Date/Next Due
+                { wch: 15 }   // Time
         ];
         ws['!cols'] = colWidths;
 
-        // Add styling
-        const headerStyle = {
-            font: { bold: true, color: { rgb: "FFFFFF" } },
-            fill: { fgColor: { rgb: "4472C4" } },
-            alignment: { horizontal: "center" }
-        };
+            XLSX.utils.book_append_sheet(wb, ws, 'Financial Records');
+            const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+            
+            res.setHeader('Content-Disposition', 'attachment; filename=financial_records.xlsx');
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.send(excelBuffer);
 
-        // Apply header styling
-        for (let i = 0; i < Object.keys(allData[0]).length; i++) {
-            const cellRef = XLSX.utils.encode_cell({ r: 0, c: i });
-            ws[cellRef].s = headerStyle;
-        }
-
-        // Add conditional formatting for amounts
-        const amountCol = Object.keys(allData[0]).indexOf('Amount');
-        for (let i = 1; i <= allData.length; i++) {
-            const cellRef = XLSX.utils.encode_cell({ r: i, c: amountCol });
-            const amount = allData[i-1].Amount;
-            ws[cellRef].s = {
-                font: { color: { rgb: amount >= 0 ? "008000" : "FF0000" } },
-                alignment: { horizontal: "right" }
-            };
-        }
+        } else if (format === 'pdf') {
+            // Create PDF document
+            const doc = new PDFDocument({ margin: 50 });
+            
+            // Set response headers
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', 'attachment; filename=financial_records.pdf');
+            
+            // Pipe the PDF to the response
+            doc.pipe(res);
 
         // Add title
-        const title = "Financial Records";
-        const titleCell = XLSX.utils.encode_cell({ r: 0, c: 0 });
-        ws[titleCell] = { v: title, t: 's' };
-        ws[titleCell].s = {
-            font: { bold: true, size: 16 },
-            alignment: { horizontal: "center" }
-        };
+            doc.fontSize(24)
+               .font('Helvetica-Bold')
+               .text('Financial Records', { align: 'center' });
+            doc.moveDown();
 
         // Add timestamp
-        const timestamp = new Date().toLocaleString();
-        const timestampCell = XLSX.utils.encode_cell({ r: 1, c: 0 });
-        ws[timestampCell] = { v: `Generated on: ${timestamp}`, t: 's' };
-        ws[timestampCell].s = {
-            font: { italic: true },
-            alignment: { horizontal: "center" }
-        };
-
-        // Add summary
-        const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
-        const summaryCell = XLSX.utils.encode_cell({ r: 2, c: 0 });
-        ws[summaryCell] = { v: `Net Balance: Rs. ${totalExpenses.toFixed(2)}`, t: 's' };
-        ws[summaryCell].s = {
-            font: { bold: true },
-            alignment: { horizontal: "center" }
-        };
-
-        // Add the worksheet to the workbook
-        XLSX.utils.book_append_sheet(wb, ws, 'Financial Records');
-
-        // Generate Excel file
-        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
-
-        // Set response headers
-        res.setHeader('Content-Disposition', 'attachment; filename=financial_records.xlsx');
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.send(excelBuffer);
+            doc.fontSize(12)
+               .font('Helvetica')
+               .text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
+            doc.moveDown();
+            
+            // Add total balance
+            const totalBalance = allData.reduce((sum, item) => sum + item.Amount, 0);
+            doc.fontSize(14)
+               .font('Helvetica-Bold')
+               .text(`Net Balance: Rs. ${totalBalance.toFixed(2)}`, { align: 'center' });
+            doc.moveDown(2);
+            
+            // Define table layout
+            const tableTop = doc.y;
+            const columns = {
+                Type: { x: 50, width: 70 },
+                Description: { x: 120, width: 150 },
+                Amount: { x: 270, width: 80 },
+                Category: { x: 350, width: 100 },
+                Date: { x: 450, width: 100 }
+            };
+            
+            // Draw table header
+            doc.fontSize(10)
+               .font('Helvetica-Bold');
+            Object.entries(columns).forEach(([header, { x, width }]) => {
+                doc.text(header, x, tableTop, { width, align: 'left' });
+            });
+            
+            // Draw table content
+            let y = tableTop + 20;
+            doc.font('Helvetica');
+            
+            allData.forEach((row) => {
+                // Add new page if needed
+                if (y > doc.page.height - 50) {
+                    doc.addPage();
+                    y = 50;
+                }
+                
+                // Draw row
+                doc.fillColor('#000000')
+                   .text(row.Type, columns.Type.x, y, { width: columns.Type.width })
+                   .text(row.Description, columns.Description.x, y, { width: columns.Description.width });
+                
+                // Amount with color coding
+                doc.fillColor(row.Amount >= 0 ? '#008000' : '#FF0000')
+                   .text(row.Amount.toFixed(2), columns.Amount.x, y, { width: columns.Amount.width });
+                
+                // Rest of the columns
+                doc.fillColor('#000000')
+                   .text(row.Category, columns.Category.x, y, { width: columns.Category.width })
+                   .text(row.Date || row.Next_Due, columns.Date.x, y, { width: columns.Date.width });
+                
+                y += 20;
+            });
+            
+            // Finalize PDF
+            doc.end();
+        } else {
+            res.status(400).send('Invalid format specified');
+        }
     } catch (error) {
-        console.error('Error generating Excel file:', error);
-        res.status(500).send('Error generating Excel file');
+        console.error('Error generating file:', error);
+        res.status(500).send('Error generating file');
     }
 });
 
