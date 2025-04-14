@@ -1,11 +1,12 @@
 import { collection, doc, setDoc, addDoc, getDocs, getDoc, deleteDoc, arrayUnion, updateDoc, query, where, writeBatch } from "firebase/firestore";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signInWithPopup } from "firebase/auth";
 import express from "express";
 import bodyParser from "body-parser";
 import session from "express-session";
-import { db } from "./firebase.js";
+import { db, auth, googleProvider } from "./firebase.js";
 import moment from "moment";
-import { v4 as uuidv4 } from 'uuid';import XLSX from "xlsx";
+import { v4 as uuidv4 } from 'uuid';
+import XLSX from "xlsx";
 import e from "express";
 import nodemailer from 'nodemailer';
 import cron from 'node-cron';
@@ -17,7 +18,6 @@ dotenv.config();
 
 const app = express();
 const port = 3000;
-const auth = getAuth();
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -714,6 +714,44 @@ app.post("/delete-reminder", async (req, res) => {
         console.error("Error deleting reminder:", error.message);
         res.send("Failed to delete reminder. Please try again.");
     }
+});
+
+// Google Authentication Routes
+app.get("/auth/google", (req, res) => {
+    res.redirect("/login"); // Redirect to login page if someone tries to access this directly
+});
+
+app.post("/auth/google/callback", async (req, res) => {
+    try {
+        const { uid, email, name } = req.body;
+
+        // Check if user exists in Firestore
+        const userDoc = await getDoc(doc(db, "users", uid));
+        if (!userDoc.exists()) {
+            // Create new user document if it doesn't exist
+            await saveUserData(uid, email, name);
+        }
+
+        // Set session
+        req.session.user = { uid, email, name };
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error("Error during Google sign in callback:", error);
+        res.status(500).json({ success: false, error: "Authentication failed" });
+    }
+});
+
+// Serve Firebase configuration
+app.get('/firebase-config', (req, res) => {
+    res.json({
+        apiKey: process.env.FIREBASE_API_KEY,
+        authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.FIREBASE_APP_ID,
+        measurementId: process.env.FIREBASE_MEASUREMENT_ID
+    });
 });
 
 // Start Server
