@@ -101,19 +101,25 @@ const checkAndSendReminders = async () => {
 // Schedule the reminder check to run daily at 9:00 AM
 cron.schedule('0 9 * * *', checkAndSendReminders);
 
-// Routes
-app.get("/", async (req, res) => {
-    const user = req.session.user || null;
-    console.log(user);
-    if (user) {
-        await updateMissingExpenseType(user.uid); // Run the update function
-        var { expenses, total } = await fetchExpenses(user.uid);
-        const reminders = await fetchReminders(user.uid);
-        // console.log(expenses);
-
-        res.render("index", { user, expenses, total, reminders });
+// Middleware to check if user is authenticated
+const checkAuth = (req, res, next) => {
+    if (req.session.user) {
+        next();
     } else {
-        res.render("login", { user: null, expenses: [] });
+        // For unauthenticated users, we'll use localStorage
+        next();
+    }
+};
+
+// Root route - show different content based on auth status
+app.get("/", async (req, res) => {
+    if (req.session.user) {
+        const { expenses } = await fetchExpenses(req.session.user.uid);
+        const total = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+        const reminders = await fetchReminders(req.session.user.uid);
+        res.render("index", { user: req.session.user, expenses, total, reminders });
+    } else {
+        res.render("index", { user: null, expenses: [], total: 0, reminders: [] });
     }
 });
 
@@ -752,6 +758,12 @@ app.get('/firebase-config', (req, res) => {
         appId: process.env.FIREBASE_APP_ID,
         measurementId: process.env.FIREBASE_MEASUREMENT_ID
     });
+});
+
+// Add new route for localStorage data
+app.post("/save-local-data", (req, res) => {
+    // This endpoint is just a placeholder since we'll handle everything in localStorage
+    res.json({ success: true });
 });
 
 // Start Server

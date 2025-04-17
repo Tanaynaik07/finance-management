@@ -5,371 +5,328 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/styles/index.css">
-    <title>User Expenses</title>
-
+    <title>Finance Management</title>
 </head>
 
 <body>
     <div class="container">
-
-
-        <h1>Welcome, <%= user.name %>!</h1>
-        <h1>Add Expenses</h1>
-        <p style="margin-top: 16px; font-size: 14px; color: #555;">
-            <strong>Note:</strong>
-            Please select the correct amount type (Income/Expense) and expense type from the dropdown list.
-
-
-        </p>
-        <form method="POST" action="/add-expense">
-            <label for="description">Description</label>
-            <input type="text" name="description" id="description">
-            <div style="display: flex;flex-direction: row;gap:50px">
-                <div style="display: flex;flex-direction: column;">
-
-                    <label for="amountType">Amount Type:</label>
-                    <select id="amountType" name="amountType" style="padding: 10px;border:none">
-                        <option value="positive">Income (+)</option>
-                        <option value="negative">Expense (-)</option>
+        <% if (user) { %>
+            <!-- Registered User Section -->
+            <div class="registered-section">
+                <h1>Welcome, <%= user.name %>!</h1>
+                <div class="auth-buttons">
+                    <form action="/logout" method="POST">
+                        <button type="submit" class="logout-btn">Logout</button>
+                    </form>
+                </div>
+                <h2>Add Expenses</h2>
+                <p style="margin-top: 16px; font-size: 14px; color: #555;">
+                    <strong>Note:</strong>
+                    <span style="color: red; padding: 2px 5px; background-color: lightcoral; border-radius: 5px;">Red box</span> means money spent.
+                    <span style="color: green; padding: 2px 5px; background-color: lightgreen; border-radius: 5px;">Green box</span> means money received.
+                </p>
+                <form method="POST" action="/add-expense">
+                    <label for="description">Description</label>
+                    <input type="text" name="description" id="description">
+                    <div style="display: flex;flex-direction: row;gap:50px">
+                        <div style="display: flex;flex-direction: column;">
+                            <label for="amountType">Amount Type:</label>
+                            <select id="amountType" name="amountType" style="padding: 10px;border:none">
+                                <option value="positive">Income (+)</option>
+                                <option value="negative">Expense (-)</option>
+                            </select>
+                        </div>
+                        <div style="display: flex;flex-direction: column;">
+                            <label for="amount">Amount</label>
+                            <input type="number" name="amount" id="amount" required>
+                        </div>
+                    </div>
+                    <label for="expenseType">Select Expense Type:</label>
+                    <select id="expenseType" name="expenseType" style="padding: 10px;">
+                        <option value="Rent">Rent</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Groceries">Groceries</option>
+                        <option value="Transportation">Transportation</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Healthcare">Healthcare</option>
+                        <option value="Education">Education</option>
+                        <option value="Insurance">Insurance</option>
+                        <option value="Subscriptions">Subscriptions</option>
+                        <option value="Miscellaneous">Miscellaneous</option>
                     </select>
-                </div>
-                <div style="display: flex;flex-direction: column;">
-
-                    <label for="amount">Amount</label>
-                    <input type="number" name="amount" id="amount" required>
-                </div>
-            </div>
-            <label for="expenseType">Select Expense Type:</label>
-            <select id="expenseType" name="expenseType" style="padding: 10px;">
-                <option value="Rent">Rent</option>
-                <option value="Utilities">Utilities</option>
-                <option value="Groceries">Groceries</option>
-                <option value="Transportation">Transportation</option>
-                <option value="Entertainment">Entertainment</option>
-                <option value="Healthcare">Healthcare</option>
-                <option value="Education">Education</option>
-                <option value="Insurance">Insurance</option>
-                <option value="Subscriptions">Subscriptions</option>
-                <option value="Miscellaneous">Miscellaneous</option>
-            </select>
-            <button type="submit" id="add-expense-btn">Add Expense</button>
-
-        </form>
-        <div style=" display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            justify-content: space-between;">
-
-            <h2 style="width: fit-content;">Net Expenditure: Rs<%= total %>
-            </h2>
-
-            <div id="download-form" style="display: flex; gap: 10px;">
-                <form method="get" action="/download-records" style="margin: 0;">
-                    <input type="hidden" name="format" value="excel">
-                    <button type="submit" class="download-btn">Download Excel</button>
+                    <button type="submit" id="add-expense-btn">Add Expense</button>
                 </form>
-                <form method="get" action="/download-records" style="margin: 0;">
-                    <input type="hidden" name="format" value="pdf">
-                    <button type="submit" class="download-btn">Download PDF</button>
-                </form>
-            </div>
-        </div>
-
-        <h2>Your Expenses</h2>
-        <!-- <input type="date" id="date" name="date" style="margin-bottom: 16px;"> -->
-        <details open>
-            <summary>Expenses</summary>
-            <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr>
-                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">
-                            </th>
-                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">
-                                Description</th>
-                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">
-                                Amount(Rs)
-                            </th>
-                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">
-                                Type
-                            </th>
-                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Date
-                            </th>
-                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Time
-                            </th>
-                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Edit
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% expenses.slice(0).forEach((expense, index)=> { %>
-                            <% if (index < 10) { %>
+                <div style="display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between;">
+                    <h2 style="width: fit-content;">Net Expenditure: Rs<%= total %></h2>
+                    <div id="download-form" style="display: flex; gap: 10px;">
+                        <form method="get" action="/download-records" style="margin: 0;">
+                            <input type="hidden" name="format" value="excel">
+                            <button type="submit" class="download-btn">Download Excel</button>
+                        </form>
+                        <form method="get" action="/download-records" style="margin: 0;">
+                            <input type="hidden" name="format" value="pdf">
+                            <button type="submit" class="download-btn">Download PDF</button>
+                        </form>
+                    </div>
+                </div>
+                <h2>Your Expenses</h2>
+                <details open>
+                    <summary>Expenses</summary>
+                    <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
                                 <tr>
-                                    <form method="POST" action="/delete-expense"
-                                        style="height: fit-content; width: fit-content;">
-                                        <input type="hidden" name="id" value="<%= expense._id %>">
-                                        <input type="hidden" name="expenseId" value="<%= expense.expenseId %>">
-
-                                        <td style="padding: 8px; border-bottom: 1px solid #ddd; display: flex; justify-content: center;"
-                                            id="expense_delete_btn">
-                                            <button type="submit" style="display: flex;
-                                                        justify-content: center;
-                                                        align-items: center;
-                                                        width: 40px; /* Adjust width as needed */
-                                                        height: 40px; /* Adjust height as needed */
-                                                        padding: 0;
-                                                        background: none;
-                                                        border: none;">
-                                                <svg xmlns="http://www.w3.org/2000/svg"
-                                                    xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="64"
-                                                    height="64" viewBox="-26 -26 128 128" xml:space="preserve">
-                                                    <defs></defs>
-                                                    <g
-                                                        style="fill: none; opacity: 1; transform: translate(1.4065934065934016 1.4065934065934016) scale(1 1)">
-                                                        <path
-                                                            d="M 73.771 19.39 c -0.378 -0.401 -0.904 -0.628 -1.455 -0.628 H 17.685 c -0.551 0 -1.077 0.227 -1.455 0.628 c -0.378 0.4 -0.574 0.939 -0.542 1.489 l 3.637 62.119 C 19.555 86.924 22.816 90 26.75 90 h 36.499 c 3.934 0 7.195 -3.076 7.427 -7.003 l 3.637 -62.119 C 74.344 20.329 74.148 19.79 73.771 19.39 z"
-                                                            style="fill: rgb(204,51,51);" />
-                                                        <path
-                                                            d="M 78.052 14.538 H 11.948 c -1.104 0 -2 -0.896 -2 -2 s 0.896 -2 2 -2 h 66.104 c 1.104 0 2 0.896 2 2 S 79.156 14.538 78.052 14.538 z"
-                                                            style="fill: rgb(204,51,51);" />
-                                                        <path
-                                                            d="M 57.711 14.538 H 32.289 c -1.104 0 -2 -0.896 -2 -2 V 7.36 c 0 -4.059 3.302 -7.36 7.36 -7.36 h 14.703 c 4.058 0 7.359 3.302 7.359 7.36 v 5.178 C 59.711 13.643 58.815 14.538 57.711 14.538 z M 34.289 10.538 h 21.422 V 7.36 c 0 -1.853 -1.507 -3.36 -3.359 -3.36 H 37.649 c -1.853 0 -3.36 1.507 -3.36 3.36 V 10.538 z"
-                                                            style="fill: rgb(204,51,51);" />
-                                                        <path
-                                                            d="M 57.342 76.103 c -0.039 0 -0.079 -0.001 -0.119 -0.004 c -1.103 -0.064 -1.944 -1.011 -1.879 -2.113 l 2.29 -39.113 c 0.063 -1.103 0.993 -1.952 2.113 -1.88 c 1.103 0.064 1.944 1.011 1.88 2.113 L 59.336 74.22 C 59.274 75.282 58.393 76.103 57.342 76.103 z"
-                                                            style="fill: rgb(255,255,255);" />
-                                                        <path
-                                                            d="M 32.658 76.103 c -1.051 0 -1.933 -0.82 -1.995 -1.883 l -2.29 -39.114 c -0.064 -1.103 0.777 -2.049 1.88 -2.113 c 1.088 -0.062 2.049 0.777 2.113 1.88 l 2.29 39.113 c 0.064 1.103 -0.777 2.049 -1.88 2.113 C 32.737 76.102 32.698 76.103 32.658 76.103 z"
-                                                            style="fill: rgb(255,255,255);" />
-                                                        <path
-                                                            d="M 45 76.103 c -1.104 0 -2 -0.896 -2 -2 V 34.989 c 0 -1.104 0.896 -2 2 -2 s 2 0.896 2 2 v 39.114 C 47 75.207 46.104 76.103 45 76.103 z"
-                                                            style="fill: rgb(255,255,255);" />
-                                                    </g>
-                                                </svg>
-                                            </button>
-                                        </td>
-                                    </form>
-
-                                    <td style="padding: 8px; border-bottom: 1px solid #ddd; ">
-                                        <%= expense.description %>
-                                    </td>
-                                    <%if(expense.amount>0){%>
-                                        <td
-                                            style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd; color: rgb(0, 255, 0); text-align: center;">
-
-                                            +<%= Math.abs(expense.amount) %>
-                                        </td>
-
-                                        <%}else{%>
-                                            <td
-                                                style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;color: lightcoral; text-align: center;">
-                                                -<%= Math.abs(expense.amount) %>
-                                            </td>
-                                            <%}%>
-                                                <td style="padding: 8px; border-bottom: 1px solid #ddd;">
-                                                    <%= expense.expenseType ?
-                                                        expense.expenseType.charAt(0).toUpperCase() +
-                                                        expense.expenseType.slice(1) : 'N/A' %>
-
-
-                                                </td>
-                                                <td style="padding: 8px; border-bottom: 1px solid #ddd;">
-                                                    <%= expense.date %>
-                                                </td>
-                                                <td style="padding: 8px; border-bottom: 1px solid #ddd;">
-                                                    <%= expense.time %>
-                                                </td>
-
-
-                                                <td style="padding: 8px; border-bottom: 1px solid #ddd;">
-                                                    <button type="button" id="edit-expense-btn"
-                                                        onclick="openEditModal('<%=user.uid%>','<%= expense.expenseId %>', '<%= expense.description %>', '<%= expense.amount %>', '<%= expense.expenseType %>')">
-                                                        Edit
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;"></th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Description</th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Amount(Rs)</th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Type</th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Date</th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Time</th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Edit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% expenses.slice(0).forEach((expense, index)=> { %>
+                                    <% if (index < 10) { %>
+                                        <tr>
+                                            <form method="POST" action="/delete-expense" style="height: fit-content; width: fit-content;">
+                                                <input type="hidden" name="id" value="<%= expense._id %>">
+                                                <input type="hidden" name="expenseId" value="<%= expense.expenseId %>">
+                                                <td style="padding: 8px; border-bottom: 1px solid #ddd; display: flex; justify-content: center;" id="expense_delete_btn">
+                                                    <button type="submit" style="display: flex; justify-content: center; align-items: center; width: 40px; height: 40px; padding: 0; background: none; border: none;">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="64" height="64" viewBox="-26 -26 128 128" xml:space="preserve">
+                                                            <defs></defs>
+                                                            <g style="fill: none; opacity: 1; transform: translate(1.4065934065934016 1.4065934065934016) scale(1 1)">
+                                                                <path d="M 73.771 19.39 c -0.378 -0.401 -0.904 -0.628 -1.455 -0.628 H 17.685 c -0.551 0 -1.077 0.227 -1.455 0.628 c -0.378 0.4 -0.574 0.939 -0.542 1.489 l 3.637 62.119 C 19.555 86.924 22.816 90 26.75 90 h 36.499 c 3.934 0 7.195 -3.076 7.427 -7.003 l 3.637 -62.119 C 74.344 20.329 74.148 19.79 73.771 19.39 z" style="fill: rgb(204,51,51);" />
+                                                                <path d="M 78.052 14.538 H 11.948 c -1.104 0 -2 -0.896 -2 -2 s 0.896 -2 2 -2 h 66.104 c 1.104 0 2 0.896 2 2 S 79.156 14.538 78.052 14.538 z" style="fill: rgb(204,51,51);" />
+                                                                <path d="M 57.711 14.538 H 32.289 c -1.104 0 -2 -0.896 -2 -2 V 7.36 c 0 -4.059 3.302 -7.36 7.36 -7.36 h 14.703 c 4.058 0 7.359 3.302 7.359 7.36 v 5.178 C 59.711 13.643 58.815 14.538 57.711 14.538 z M 34.289 10.538 h 21.422 V 7.36 c 0 -1.853 -1.507 -3.36 -3.359 -3.36 H 37.649 c -1.853 0 -3.36 1.507 -3.36 3.36 V 10.538 z" style="fill: rgb(204,51,51);" />
+                                                                <path d="M 57.342 76.103 c -0.039 0 -0.079 -0.001 -0.119 -0.004 c -1.103 -0.064 -1.944 -1.011 -1.879 -2.113 l 2.29 -39.113 c 0.063 -1.103 0.993 -1.952 2.113 -1.88 c 1.103 0.064 1.944 1.011 1.88 2.113 L 59.336 74.22 C 59.274 75.282 58.393 76.103 57.342 76.103 z" style="fill: rgb(255,255,255);" />
+                                                                <path d="M 32.658 76.103 c -1.051 0 -1.933 -0.82 -1.995 -1.883 l -2.29 -39.114 c -0.064 -1.103 0.777 -2.049 1.88 -2.113 c 1.088 -0.062 2.049 0.777 2.113 1.88 l 2.29 39.113 c 0.064 1.103 -0.777 2.049 -1.88 2.113 C 32.737 76.102 32.698 76.103 32.658 76.103 z" style="fill: rgb(255,255,255);" />
+                                                                <path d="M 45 76.103 c -1.104 0 -2 -0.896 -2 -2 V 34.989 c 0 -1.104 0.896 -2 2 -2 s 2 0.896 2 2 v 39.114 C 47 75.207 46.104 76.103 45 76.103 z" style="fill: rgb(255,255,255);" />
+                                                            </g>
+                                                        </svg>
                                                     </button>
                                                 </td>
-
-
-
-
+                                            </form>
+                                            <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= expense.description %></td>
+                                            <%if(expense.amount>0){%>
+                                                <td style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd; color: rgb(0, 255, 0); text-align: center;">+<%= Math.abs(expense.amount) %></td>
+                                            <% } else {%>
+                                                <td style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;color: lightcoral; text-align: center;">-<%= Math.abs(expense.amount) %></td>
+                                            <% } %>
+                                            <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= expense.expenseType ? expense.expenseType.charAt(0).toUpperCase() + expense.expenseType.slice(1) : 'N/A' %></td>
+                                            <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= expense.date %></td>
+                                            <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= expense.time %></td>
+                                            <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+                                                <button type="button" id="edit-expense-btn" onclick="openEditModal('<%=user.uid%>','<%= expense.expenseId %>', '<%= expense.description %>', '<%= expense.amount %>', '<%= expense.expenseType %>')">Edit</button>
+                                            </td>
+                                        </tr>
+                                    <% } %>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details open>
+                    <summary>Payment Reminders</summary>
+                    <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Description</th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Amount(Rs)</th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Period (Days)</th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Next Due</th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Actions</th>
                                 </tr>
-                                <% } %>
-                                    <% }); %>
-                    </tbody>
-                </table>
+                            </thead>
+                            <tbody>
+                                <% reminders && reminders.forEach((reminder) => { %>
+                                    <tr>
+                                        <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= reminder.description %></td>
+                                        <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">
+                                            <%if(reminder.amount > 0){%>
+                                                <span style="color: rgb(0, 255, 0);">+<%= Math.abs(reminder.amount) %></span>
+                                            <% } else {%>
+                                                <span style="color: lightcoral;">-<%= Math.abs(reminder.amount) %></span>
+                                            <% } %>
+                                        </td>
+                                        <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= reminder.period %></td>
+                                        <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= reminder.nextDue %></td>
+                                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+                                            <button type="button" onclick="openEditReminderModal('<%= reminder.reminderId %>', '<%= reminder.description %>', '<%= reminder.amount %>', '<%= reminder.period %>', '<%= reminder.amount > 0 ? 'positive' : 'negative' %>')">Edit</button>
+                                            <form method="POST" action="/delete-reminder" style="display: inline;">
+                                                <input type="hidden" name="reminderId" value="<%= reminder.reminderId %>">
+                                                <button type="submit" style="color: red;">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <button type="button" onclick="openAddReminderModal()" style="margin-top: 10px;">Add New Reminder</button>
+                <p style="margin-top: 16px; font-size: 14px; color: #555;">
+                    <strong>Note:</strong>
+                    <span style="color: red; padding: 2px 5px; background-color: lightcoral; border-radius: 5px;">Red box</span> means money spent.
+                    <span style="color: green; padding: 2px 5px; background-color: lightgreen; border-radius: 5px;">Green box</span> means money received.
+                </p>
             </div>
-
-
-        </details>
-        <!-- Payment Reminders Section -->
-        <details open>
-            <summary>Payment Reminders</summary>
-            <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr>
-                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Description</th>
-                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Amount(Rs)</th>
-                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Period (Days)</th>
-                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Next Due</th>
-                            <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% reminders && reminders.forEach((reminder) => { %>
-                            <tr>
-                                <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= reminder.description %></td>
-                                <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">
-                                    <%if(reminder.amount > 0){%>
-                                        <span style="color: rgb(0, 255, 0);">+<%= Math.abs(reminder.amount) %></span>
-                                    <%}else{%>
-                                        <span style="color: lightcoral;">-<%= Math.abs(reminder.amount) %></span>
-                                    <%}%>
-                                </td>
-                                <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= reminder.period %></td>
-                                <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= reminder.nextDue %></td>
-                                <td style="padding: 8px; border-bottom: 1px solid #ddd;">
-                                    <button type="button" onclick="openEditReminderModal('<%= reminder.reminderId %>', '<%= reminder.description %>', '<%= reminder.amount %>', '<%= reminder.period %>', '<%= reminder.amount > 0 ? 'positive' : 'negative' %>')">Edit</button>
-                                    <form method="POST" action="/delete-reminder" style="display: inline;">
-                                        <input type="hidden" name="reminderId" value="<%= reminder.reminderId %>">
-                                        <button type="submit" style="color: red;">Delete</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <% }); %>
-                    </tbody>
-                </table>
-            </div>
-            <button type="button" onclick="openAddReminderModal()" style="margin-top: 10px;">Add New Reminder</button>
-        </details>
-
-        <!-- Add Reminder Modal -->
-        <div id="addReminderModal" class="modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        background: white; padding: 20px; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0,0,0,0.2); z-index: 1000;">
-            <h2>Add Payment Reminder</h2>
-            <form id="addReminderForm" method="POST" action="/add-reminder">
-                <label for="reminderDescription">Description</label>
-                <input type="text" name="description" id="reminderDescription" required>
-                
-                <div style="display: flex;flex-direction: row;gap:50px">
-                    <div style="display: flex;flex-direction: column;">
-                        <label for="reminderAmountType">Amount Type:</label>
-                        <select id="reminderAmountType" name="amountType" style="padding: 10px;border:none">
-                            <option value="positive">Income (+)</option>
-                            <option value="negative">Expense (-)</option>
-                        </select>
-                    </div>
-                    <div style="display: flex;flex-direction: column;">
-                        <label for="reminderAmount">Amount</label>
-                        <input type="number" name="amount" id="reminderAmount" required>
-                    </div>
+        <% } else { %>
+            <!-- Unregistered User Section -->
+            <div class="unregistered-section">
+                <h1>Welcome to Finance Management</h1>
+                <div class="auth-buttons">
+                    <a href="/login" class="auth-btn">Login</a>
+                    <a href="/signup" class="auth-btn">Sign Up</a>
                 </div>
-                
-                <label for="reminderPeriod">Period (Days)</label>
-                <input type="number" name="period" id="reminderPeriod" required min="1">
-                
-                <button type="submit">Add Reminder</button>
-                <button type="button" onclick="closeAddReminderModal()">Cancel</button>
-            </form>
-        </div>
-
-        <!-- Edit Reminder Modal -->
-        <div id="editReminderModal" class="modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        background: white; padding: 20px; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0,0,0,0.2); z-index: 1000;">
-            <h2>Edit Payment Reminder</h2>
-            <form id="editReminderForm" method="POST" action="/edit-reminder">
-                <input type="hidden" name="reminderId" id="editReminderId">
-                <label for="editReminderDescription">Description</label>
-                <input type="text" name="description" id="editReminderDescription" required>
-                
-                <div style="display: flex;flex-direction: row;gap:50px">
-                    <div style="display: flex;flex-direction: column;">
-                        <label for="editReminderAmountType">Amount Type:</label>
-                        <select id="editReminderAmountType" name="amountType" style="padding: 10px;border:none">
-                            <option value="positive">Income (+)</option>
-                            <option value="negative">Expense (-)</option>
-                        </select>
-                    </div>
-                    <div style="display: flex;flex-direction: column;">
-                        <label for="editReminderAmount">Amount</label>
-                        <input type="number" name="amount" id="editReminderAmount" required>
-                    </div>
+                <div class="local-storage-notice">
+                    <p>To access your data and access more features kindly login or signup.</p>
                 </div>
-                
-                <label for="editReminderPeriod">Period (Days)</label>
-                <input type="number" name="period" id="editReminderPeriod" required min="1">
-                
-                <button type="submit">Save Changes</button>
-                <button type="button" onclick="closeEditReminderModal()">Cancel</button>
-            </form>
-        </div>
-
-        <!-- Marking for color coding -->
-        <p style="margin-top: 16px; font-size: 14px; color: #555;">
-            <strong>Note:</strong>
-            <span style="color: red; padding: 2px 5px; background-color: lightcoral; border-radius: 5px;">Red
-                box</span> means money spent.
-
-            <span style="color: green; padding: 2px 5px; background-color: lightgreen; border-radius: 5px;">Green
-                box</span>means money received.
-        </p>
-
-        <form method="POST" action="/logout">
-            <button type="submit" id="logout-btn">Log Out</button>
-        </form>
-
-    </div>
-    <!-- Edit Expense Modal -->
-    <div id="editExpenseModal" class="modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-background: white; padding: 20px; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0,0,0,0.2); z-index: 1000;">
-        <h2>Edit Expense</h2>
-        <form id="editExpenseForm" method="POST" action="/edit-expense">
-            <input type="hidden" name="uid" id="uid">
-            <input type="hidden" name="expenseId" id="editExpenseId">
-            <label for="editDescription">Description</label>
-            <input type="text" name="description" id="editDescription" required>
-            <!-- <div style="display: flex;flex-direction: row;gap:50px">
-                <div style="display: flex;flex-direction: column;">
-
-                    <label for="editAmountType">Amount Type:</label>
-                    <select id="amountType" name="amountType" style="padding: 10px;border:none">
-                        <option value="positive">Income (+)</option>
-                        <option value="negative">Expense (-)</option>
+                <h2>Add Expenses</h2>
+                <p style="margin-top: 16px; font-size: 14px; color: #555;">
+                    <strong>Note:</strong>
+                    Please select the correct amount type (Income/Expense) and expense type from the dropdown list.
+                </p>
+                <form id="localExpenseForm">
+                    <label for="description">Description</label>
+                    <input type="text" name="description" id="description">
+                    <div style="display: flex;flex-direction: row;gap:50px">
+                        <div style="display: flex;flex-direction: column;">
+                            <label for="amountType">Amount Type:</label>
+                            <select id="amountType" name="amountType" style="padding: 10px;border:none">
+                                <option value="positive">Income (+)</option>
+                                <option value="negative">Expense (-)</option>
+                            </select>
+                        </div>
+                        <div style="display: flex;flex-direction: column;">
+                            <label for="amount">Amount</label>
+                            <input type="number" name="amount" id="amount" required>
+                        </div>
+                    </div>
+                    <label for="expenseType">Select Expense Type:</label>
+                    <select id="expenseType" name="expenseType" style="padding: 10px;">
+                        <option value="Rent">Rent</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Groceries">Groceries</option>
+                        <option value="Transportation">Transportation</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Healthcare">Healthcare</option>
+                        <option value="Education">Education</option>
+                        <option value="Insurance">Insurance</option>
+                        <option value="Subscriptions">Subscriptions</option>
+                        <option value="Miscellaneous">Miscellaneous</option>
                     </select>
+                    <button type="submit" id="add-expense-btn">Add Expense</button>
+                </form>
+                <div style="display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between;">
+                    <h2 style="width: fit-content;">Net Expenditure: Rs<span id="localTotal">0.00</span></h2>
                 </div>
-                <div style="display: flex;flex-direction: column;">
-
-                    <label for="editAmount">Amount</label>
-                    <input type="number" name="amount" id="amount" required>
-                </div>
-            </div> -->
-            <label for="editAmount">Amount</label>
-            <input type="number" name="amount" id="editAmount" required>
-
-            <label for="editExpenseType">Expense Type</label>
-            <select id="editExpenseType" name="expenseType" style="padding: 10px;">
-                <option value="Rent">Rent</option>
-                <option value="Utilities">Utilities</option>
-                <option value="Groceries">Groceries</option>
-                <option value="Transportation">Transportation</option>
-                <option value="Entertainment">Entertainment</option>
-                <option value="Healthcare">Healthcare</option>
-                <option value="Education">Education</option>
-                <option value="Insurance">Insurance</option>
-                <option value="Subscriptions">Subscriptions</option>
-                <option value="Miscellaneous">Miscellaneous</option>
-            </select>
-
-            <button type="submit" id="editExpenseSubmitBtn">Save Changes</button>
-            <button type="button" onclick="closeModal()">Cancel</button>
-        </form>
+                <h2>Your Expenses</h2>
+                <details open>
+                    <summary>Expenses</summary>
+                    <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;"></th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Description</th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Amount(Rs)</th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Type</th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Date</th>
+                                    <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="localExpensesList">
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <p style="margin-top: 16px; font-size: 14px; color: #555;">
+                    <strong>Note:</strong>
+                    <span style="color: red; padding: 2px 5px; background-color: lightcoral; border-radius: 5px;">Red box</span> means money spent.
+                    <span style="color: green; padding: 2px 5px; background-color: lightgreen; border-radius: 5px;">Green box</span> means money received.
+                </p>
+            </div>
+        <% } %>
     </div>
-
-    <!-- Background Overlay (optional, to darken the background when modal is open) -->
-    <div id="modalOverlay" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-background: rgba(0, 0, 0, 0.5); z-index: 999;"></div>
-
 
     <script>
+        // Handle localStorage for unauthenticated users
+        if (!<%= user ? 'true' : 'false' %>) {
+            // Load expenses from localStorage
+            function loadLocalExpenses() {
+                const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+                const expensesList = document.getElementById('localExpensesList');
+                const totalElement = document.getElementById('localTotal');
+                let total = 0;
+                
+                expensesList.innerHTML = '';
+                
+                expenses.forEach((expense, index) => {
+                    if (index < 10) {
+                        const row = document.createElement('tr');
+                        const amount = parseFloat(expense.amount);
+                        total += amount;
+                        
+                        row.innerHTML = `
+                            <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+                                <button type="button" onclick="deleteLocalExpense(${index})" style="background: none; border: none; cursor: pointer;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 6h18"></path>
+                                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </td>
+                            <td style="padding: 8px; border-bottom: 1px solid #ddd;">${expense.description}</td>
+                            <td style="text-align: center; padding: 8px; border-bottom: 1px solid #ddd; color: ${expense.amountType === 'positive' ? 'rgb(0, 255, 0)' : 'lightcoral'}">
+                                ${expense.amountType === 'positive' ? '+' : '-'}${Math.abs(amount)}
+                            </td>
+                            <td style="padding: 8px; border-bottom: 1px solid #ddd;">${expense.expenseType}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #ddd;">${new Date(expense.date).toLocaleDateString()}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #ddd;">${new Date(expense.date).toLocaleTimeString()}</td>
+                        `;
+                        expensesList.appendChild(row);
+                    }
+                });
+                
+                totalElement.textContent = total.toFixed(2);
+            }
+
+            // Delete expense from localStorage
+            function deleteLocalExpense(index) {
+                const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+                expenses.splice(index, 1);
+                localStorage.setItem('expenses', JSON.stringify(expenses));
+                loadLocalExpenses();
+            }
+
+            // Save expense to localStorage
+            document.getElementById('localExpenseForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const expense = {
+                    description: formData.get('description'),
+                    amountType: formData.get('amountType'),
+                    amount: formData.get('amount'),
+                    expenseType: formData.get('expenseType'),
+                    date: new Date().toISOString()
+                };
+
+                const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+                expenses.push(expense);
+                localStorage.setItem('expenses', JSON.stringify(expenses));
+
+                loadLocalExpenses();
+                e.target.reset();
+            });
+
+            // Load initial expenses
+            loadLocalExpenses();
+        }
+
         function openEditModal(uid, id, description, amount, type) {
             document.getElementById('uid').value = uid;
             document.getElementById('editExpenseId').value = id;
@@ -413,8 +370,6 @@ background: rgba(0, 0, 0, 0.5); z-index: 999;"></div>
             document.getElementById('modalOverlay').style.display = 'none';
         }
     </script>
-
 </body>
-
 
 </html>
