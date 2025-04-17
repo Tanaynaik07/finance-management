@@ -1,0 +1,41 @@
+
+Test Report
+===========
+Date: 2025-04-14 10:53:36
+Duration: 66.16 seconds
+
+Summary
+-------
+Total Tests: 21
+Passed: 20
+Failed: 1
+Success Rate: 95.24%
+
+Test Cases
+---------
+2025-04-14 10:52:34 - Login - timepasser0010@gmail.com: FAILED
+    Error: Login failed - Alert: Login failed. Please try again.
+2025-04-14 10:52:37 - Login - tanaynaik0710@gmail.com: PASSED
+2025-04-14 10:52:39 - Add Expense: PASSED
+2025-04-14 10:52:44 - Edit Expense: PASSED
+2025-04-14 10:52:49 - Add Reminder: PASSED
+2025-04-14 10:52:54 - Edit Reminder: PASSED
+2025-04-14 10:52:56 - Export Excel: PASSED
+2025-04-14 10:52:59 - Export PDF: PASSED
+2025-04-14 10:53:01 - Delete Expense: PASSED
+2025-04-14 10:53:03 - Delete Reminder: PASSED
+2025-04-14 10:53:05 - Logout: PASSED
+2025-04-14 10:53:07 - Login - timepasser0010@gmail.com: PASSED
+2025-04-14 10:53:10 - Add Expense: PASSED
+2025-04-14 10:53:16 - Edit Expense: PASSED
+2025-04-14 10:53:20 - Add Reminder: PASSED
+2025-04-14 10:53:25 - Edit Reminder: PASSED
+2025-04-14 10:53:27 - Export Excel: PASSED
+2025-04-14 10:53:29 - Export PDF: PASSED
+2025-04-14 10:53:31 - Delete Expense: PASSED
+2025-04-14 10:53:34 - Delete Reminder: PASSED
+2025-04-14 10:53:36 - Logout: PASSED
+
+Errors
+------
+- Login - timepasser0010@gmail.com: Login failed - Alert: Login failed. Please try again.
