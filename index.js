@@ -153,6 +153,7 @@ app.post("/signup", async (req, res) => {
         req.session.user = { uid, email, name };
 
         res.send("Registration successful! Please check your email to verify your account.");
+        res.redirect("/login");
     } catch (error) {
         console.error("Error registering user:", error.message);
         res.send("Signup failed. Please try again.");
@@ -428,22 +429,28 @@ app.post("/delete-expense", async (req, res) => {
 });
 
 app.post('/edit-expense', async (req, res) => {
-    const { uid, expenseId, description, amountType, amount, expenseType } = req.body;
+    const user = req.session.user;
+    if (!user) return res.redirect("/login");
 
-    console.log(req.body);  // Log the request body for debugging
-    if (!uid || !expenseId || !description || !amount || !expenseType) {
+    const { expenseId, description, amountType, amount, expenseType } = req.body;
+
+    console.log('Edit Expense Request:', req.body);  // Log the request body for debugging
+
+    if (!expenseId || !description || !amount || !expenseType) {
+        console.error('Missing required fields:', { expenseId, description, amount, expenseType });
         return res.status(400).send({ message: 'Missing required fields' });
     }
 
     try {
         // Get reference to the expenses collection
-        const expensesRef = collection(db, `users/${uid}/expenses`);
+        const expensesRef = collection(db, `users/${user.uid}/expenses`);
 
         // Create a query to find the document that matches the expenseId
         const q = query(expensesRef, where("expenseId", "==", expenseId));
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
+            console.error('Expense not found:', expenseId);
             return res.status(404).send({ message: 'Expense not found!' });
         }
 
@@ -452,7 +459,7 @@ app.post('/edit-expense', async (req, res) => {
         console.log("Document ID:", docId);
 
         // Create a reference to the specific expense document
-        const expenseDocRef = doc(db, `users/${uid}/expenses`, docId);
+        const expenseDocRef = doc(db, `users/${user.uid}/expenses`, docId);
 
         // Fetch the expense document
         const expenseDoc = await getDoc(expenseDocRef);
@@ -468,11 +475,11 @@ app.post('/edit-expense', async (req, res) => {
 
         // Add the current timestamp to the updateDates array
         const currentTimestamp = new Date();
+        let finalAmount = parseFloat(amount);
         if (amountType === "negative") {
-            amount = -Math.abs(amount);
-        }
-        else if (amountType === "positive") {
-            amount = Math.abs(amount);
+            finalAmount = -Math.abs(finalAmount);
+        } else if (amountType === "positive") {
+            finalAmount = Math.abs(finalAmount);
         }
 
         // Create an entry for the edit history
@@ -480,7 +487,7 @@ app.post('/edit-expense', async (req, res) => {
             timestamp: currentTimestamp,
             updatedFields: {
                 description: { old: expenseData.description, new: description },
-                amount: { old: expenseData.amount, new: parseFloat(amount) },
+                amount: { old: expenseData.amount, new: finalAmount },
                 expenseType: { old: expenseData.expenseType, new: expenseType }
             },
         };
@@ -488,13 +495,21 @@ app.post('/edit-expense', async (req, res) => {
         // Add the edit entry to the edit history and updateDates
         await updateDoc(expenseDocRef, {
             description,
-            amount: parseFloat(amount),
+            amount: finalAmount,
             expenseType,
             updateDates: arrayUnion(currentTimestamp),  // Firebase arrayUnion to ensure uniqueness
             editHistory: arrayUnion(editEntry)  // Save the edit history
         });
          
-        res.redirect('/');  // Redirect to the main page after updating the expense
+        console.log('Expense updated successfully');
+        
+        // Fetch updated expenses and reminders
+        const { expenses } = await fetchExpenses(user.uid);
+        const total = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+        const reminders = await fetchReminders(user.uid);
+        
+        // Render index page with all required data
+        res.render("index", { user, expenses, total, reminders });
     } catch (error) {
         console.error('Error updating expense:', error);
         return res.status(500).send({ message: 'Server error while updating expense.' });

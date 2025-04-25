@@ -5,6 +5,90 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/styles/index.css">
+    <style>
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            /* overflow: auto; */
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+
+        .modal-content form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .modal-content label {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .modal-content input,
+        .modal-content select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .modal-content button[type="submit"] {
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+
+        .modal-content button[type="submit"]:hover {
+            transform: translateY(-2px);
+        }
+
+        #modalOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: none;
+        }
+    </style>
     <title>Finance Management</title>
 </head>
 
@@ -252,6 +336,103 @@
         <% } %>
     </div>
 
+    <!-- Edit Expense Modal -->
+    <div id="editExpenseModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Edit Expense</h2>
+            <form id="editExpenseForm" action="/edit-expense" method="POST">
+                <input type="hidden" id="uid" name="uid" value="">
+                <input type="hidden" id="editExpenseId" name="expenseId" value="">
+                
+                <label for="editDescription">Description:</label>
+                <input type="text" id="editDescription" name="description" required>
+                
+                <label for="editAmountType">Amount Type:</label>
+                <select id="editAmountType" name="amountType" style="padding: 10px;border:none">
+                    <option value="positive">Income (+)</option>
+                    <option value="negative">Expense (-)</option>
+                </select>
+                
+                <label for="editAmount">Amount:</label>
+                <input type="number" id="editAmount" name="amount" required>
+                
+                <label for="editExpenseType">Expense Type:</label>
+                <select id="editExpenseType" name="expenseType" style="padding: 10px;">
+                    <option value="Rent">Rent</option>
+                    <option value="Utilities">Utilities</option>
+                    <option value="Groceries">Groceries</option>
+                    <option value="Transportation">Transportation</option>
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Healthcare">Healthcare</option>
+                    <option value="Education">Education</option>
+                    <option value="Insurance">Insurance</option>
+                    <option value="Subscriptions">Subscriptions</option>
+                    <option value="Miscellaneous">Miscellaneous</option>
+                </select>
+                
+                <button type="submit">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Reminder Modal -->
+    <div id="addReminderModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeAddReminderModal()">&times;</span>
+            <h2>Add New Reminder</h2>
+            <form id="addReminderForm" action="/add-reminder" method="POST">
+                <label for="reminderDescription">Description:</label>
+                <input type="text" id="reminderDescription" name="description" required>
+                
+                <label for="reminderAmountType">Amount Type:</label>
+                <select id="reminderAmountType" name="amountType" style="padding: 10px;border:none">
+                    <option value="positive">Income (+)</option>
+                    <option value="negative">Expense (-)</option>
+                </select>
+                
+                <label for="reminderAmount">Amount:</label>
+                <input type="number" id="reminderAmount" name="amount" required>
+                
+                <label for="reminderPeriod">Period (Days):</label>
+                <input type="number" id="reminderPeriod" name="period" required>
+                
+                <button type="submit">Add Reminder</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Reminder Modal -->
+    <div id="editReminderModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditReminderModal()">&times;</span>
+            <h2>Edit Reminder</h2>
+            <form id="editReminderForm" action="/edit-reminder" method="POST">
+                <input type="hidden" id="editReminderId" name="reminderId" value="">
+                
+                <label for="editReminderDescription">Description:</label>
+                <input type="text" id="editReminderDescription" name="description" required>
+                
+                <label for="editReminderAmountType">Amount Type:</label>
+                <select id="editReminderAmountType" name="amountType" style="padding: 10px;border:none">
+                    <option value="positive">Income (+)</option>
+                    <option value="negative">Expense (-)</option>
+                </select>
+                
+                <label for="editReminderAmount">Amount:</label>
+                <input type="number" id="editReminderAmount" name="amount" required>
+                
+                <label for="editReminderPeriod">Period (Days):</label>
+                <input type="number" id="editReminderPeriod" name="period" required>
+                
+                <button type="submit">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Overlay -->
+    <div id="modalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000;"></div>
+
     <script>
         // Handle localStorage for unauthenticated users
         if (!<%= user ? 'true' : 'false' %>) {
@@ -328,19 +509,36 @@
         }
 
         function openEditModal(uid, id, description, amount, type) {
-            document.getElementById('uid').value = uid;
-            document.getElementById('editExpenseId').value = id;
-            document.getElementById('editDescription').value = description;
-            document.getElementById('editAmount').value = amount;
-            document.getElementById('editExpenseType').value = type;
+            const modal = document.getElementById('editExpenseModal');
+            const form = document.getElementById('editExpenseForm');
+            
+            if (!modal || !form) {
+                console.error('Modal or form elements not found');
+                return;
+            }
 
-            document.getElementById('editExpenseModal').style.display = 'block';
+            // Set form values
+            form.querySelector('#uid').value = uid;
+            form.querySelector('#editExpenseId').value = id;
+            form.querySelector('#editDescription').value = description;
+            form.querySelector('#editAmount').value = Math.abs(amount);
+            form.querySelector('#editExpenseType').value = type;
+            form.querySelector('#editAmountType').value = amount > 0 ? 'positive' : 'negative';
+
+            // Show modal
+            modal.style.display = 'block';
             document.getElementById('modalOverlay').style.display = 'block';
         }
 
         function closeModal() {
-            document.getElementById('editExpenseModal').style.display = 'none';
-            document.getElementById('modalOverlay').style.display = 'none';
+            const modal = document.getElementById('editExpenseModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            const overlay = document.getElementById('modalOverlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
         }
 
         // New reminder modal functions
